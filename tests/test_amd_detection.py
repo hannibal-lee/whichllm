@@ -114,10 +114,11 @@ def test_detect_amd_gpu_from_sysfs_when_lspci_missing(monkeypatch, tmp_path):
 
 
 def test_display_amd_shared_memory_without_zero_kb(monkeypatch):
+    from whichllm.output import _console as console_mod
     from whichllm.output import display as display_mod
 
     buf = StringIO()
-    monkeypatch.setattr(display_mod, "console", Console(file=buf, force_terminal=False))
+    monkeypatch.setattr(console_mod, "console", Console(file=buf, force_terminal=False))
 
     display_mod.display_hardware(
         HardwareInfo(
@@ -239,10 +240,11 @@ def test_lookup_bandwidth_compound_lspci_name():
 
 def test_display_amd_dgpu_does_not_say_shared_memory(monkeypatch):
     """A discrete AMD GPU with VRAM must NOT display 'shared memory'."""
+    from whichllm.output import _console as console_mod
     from whichllm.output import display as display_mod
 
     buf = StringIO()
-    monkeypatch.setattr(display_mod, "console", Console(file=buf, force_terminal=False))
+    monkeypatch.setattr(console_mod, "console", Console(file=buf, force_terminal=False))
 
     display_mod.display_hardware(
         HardwareInfo(
@@ -272,10 +274,11 @@ def test_display_amd_dgpu_does_not_say_shared_memory(monkeypatch):
 def test_display_amd_dgpu_zero_vram_does_not_say_shared_memory(monkeypatch):
     """An AMD dGPU with undetected VRAM should NOT be labelled
     'shared memory' — that would be a false positive."""
+    from whichllm.output import _console as console_mod
     from whichllm.output import display as display_mod
 
     buf = StringIO()
-    monkeypatch.setattr(display_mod, "console", Console(file=buf, force_terminal=False))
+    monkeypatch.setattr(console_mod, "console", Console(file=buf, force_terminal=False))
 
     display_mod.display_hardware(
         HardwareInfo(
