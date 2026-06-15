@@ -114,6 +114,28 @@ The caches live under:
 ~/.cache/whichllm/
 ```
 
+## `uvx` fails with `realpath: command not found`
+
+Some older macOS versions do not include a `realpath` command. If the `uvx`
+launcher fails before whichllm starts, with output like:
+
+```text
+realpath: command not found
+/Users/.../python: No such file or directory
+```
+
+run whichllm through Python's module entry point instead:
+
+```bash
+uvx --from whichllm python -m whichllm
+```
+
+Pass normal whichllm arguments after the module name:
+
+```bash
+uvx --from whichllm python -m whichllm --gpu "RTX 4090"
+```
+
 ## The top pick has `~`, `!sr`, or `?`
 
 These markers describe benchmark evidence:

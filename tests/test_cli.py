@@ -5,6 +5,7 @@ import pytest
 from typer import Exit
 
 import whichllm.cli as cli_mod
+import whichllm.__main__ as main_mod
 from whichllm.cli import (
     _auto_min_params_for_profile,
     _fill_missing_published_at,
@@ -98,6 +99,10 @@ def test_version_option_prints_version_and_exits():
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
     assert _current_version() in result.stdout
+
+
+def test_module_entrypoint_uses_cli_app():
+    assert main_mod.app is app
 
 
 def test_format_fetch_error_uses_exception_class_when_message_is_empty():
