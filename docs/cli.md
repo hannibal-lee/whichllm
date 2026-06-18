@@ -34,6 +34,10 @@ Common options:
 | `--vram` | Override simulated GPU VRAM in GB. Requires `--gpu` |
 | `--version` | Print the installed package version |
 
+`--fit any` is the default. It can include full-GPU, partial-offload, and
+CPU-only candidates when they are runnable. `--fit full-gpu` and `--gpu-only`
+keep only rows whose `fit_type` is `full_gpu`.
+
 Examples:
 
 ```bash
@@ -56,11 +60,17 @@ Ranking JSON model rows include:
 
 | Field | Meaning |
 | --- | --- |
+| `fit_type` | Runtime fit classification: `full_gpu`, `partial_offload`, or `cpu_only` |
+| `vram_required_bytes` | Estimated runtime memory requirement for the candidate |
+| `vram_available_bytes` | GPU memory budget used for the fit check |
+| `uses_multi_gpu` | Whether the fit check used more than one GPU |
+| `multi_gpu_effective_vram_bytes` | Conservative effective VRAM budget for multi-GPU fits, when applicable |
 | `estimated_tok_per_sec` | Point estimate used by ranking |
 | `speed_confidence` | `high`, `medium`, or `low` |
 | `speed_range_tok_per_sec` | Estimated lower/upper tok/s range, when available |
 | `speed_notes` | Short reasons for the confidence level |
-| `benchmark_source` | How the speed estimate was derived: `direct`, `variant`, `base_model`, `line_interp`, `self_reported`, or `none` |
+| `benchmark_status` | Display marker category for benchmark evidence |
+| `benchmark_source` | How benchmark evidence was matched: `direct`, `variant`, `base_model`, `line_interp`, `self_reported`, or `none` |
 | `benchmark_confidence` | Confidence in the benchmark match, `0.0`–`1.0` |
 
 ## `hardware`

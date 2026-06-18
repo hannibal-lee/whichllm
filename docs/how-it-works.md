@@ -9,6 +9,7 @@ The implementation is intentionally split into small packages:
 src/whichllm/
 ├── cli.py
 ├── constants.py
+├── data/
 ├── hardware/
 ├── models/
 ├── engine/
@@ -39,7 +40,7 @@ returns an empty result on failure.
 
 | Module | Role |
 | --- | --- |
-| `hardware/nvidia.py` | Uses `nvidia-ml-py`; falls back to `nvidia-smi` |
+| `hardware/nvidia.py` | Uses `nvidia-ml-py`; falls back to `nvidia-smi`, including optional memory-clock data |
 | `hardware/amd.py` | Uses `rocm-smi`; falls back to `lspci` and `/sys/class/drm` |
 | `hardware/intel.py` | Detects Linux Intel iGPUs through `lspci` or sysfs |
 | `hardware/windows.py` | Detects Windows AMD and Intel fallback GPUs through WMI and registry memory fields |
@@ -82,7 +83,8 @@ missing metadata.
 
 ## Caches
 
-Both caches live under `~/.cache/whichllm/`.
+Both caches normally live under `~/.cache/whichllm/`. If `XDG_CACHE_HOME` is
+set to an absolute path, whichllm uses `$XDG_CACHE_HOME/whichllm/` instead.
 
 | File | TTL | Contents |
 | --- | --- | --- |
@@ -177,13 +179,13 @@ See [Scoring](scoring.md) for the score details.
 
 ## Output
 
-`output/display.py` renders:
+Output is split by surface:
 
-- hardware panels
-- recommendation tables
-- JSON output
-- `plan` tables and JSON
-- `upgrade` comparison tables and JSON
+- `output/ranking.py` renders hardware panels and recommendation tables.
+- `output/json_output.py` renders ranking, `plan`, and `upgrade` JSON.
+- `output/plan.py` renders `plan` tables.
+- `output/upgrade.py` renders upgrade comparison tables.
+- `output/display.py` re-exports those functions for older imports.
 
 Normal ranking tables show published date and downloads. With `--status`, the
 table instead shows memory required, estimated speed, and fit type. Speed cells

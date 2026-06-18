@@ -56,6 +56,13 @@ whichllm
 # Pretend you have a specific GPU
 whichllm --gpu "RTX 4090"
 
+# Only show models that fit fully in GPU VRAM
+whichllm --gpu-only
+whichllm --fit full-gpu --status
+
+# Simulate a multi-GPU workstation
+whichllm --gpu "2x RTX 4090"
+
 # Compare upgrade candidates
 whichllm upgrade "RTX 4090" "RTX 5090" "H100"
 
@@ -104,6 +111,9 @@ data, this is not a static list):
 | CPU only | — | `gpt-oss-20b` (MoE) · Q4_K_M · score 45.2 | ~6 t/s |
 
 `whichllm --gpu "<your card>"` simulates any of these before you buy.
+By default, rankings include full-GPU, partial-offload, and CPU-only
+candidates when they are usable. Use `--gpu-only` or `--fit full-gpu` when
+you only want models that fit entirely in GPU VRAM.
 
 ## Why whichllm?
 
@@ -136,7 +146,7 @@ whichllm is built to get right.
 
 ## Features
 
-- **Auto-detect hardware** — NVIDIA, AMD, Apple Silicon, CPU-only
+- **Auto-detect hardware** — NVIDIA, AMD, Intel, Apple Silicon, CPU-only
 - **Smart ranking** — Scores models by VRAM fit, speed, and benchmark quality
 - **One-command chat** — `whichllm run` downloads and starts a chat session instantly
 - **Code snippets** — `whichllm snippet` prints ready-to-run Python for any model
@@ -144,6 +154,8 @@ whichllm is built to get right.
 - **Benchmark-aware** — Integrates real eval scores with confidence-based dampening
 - **Task profiles** — Filter by general, coding, vision, or math use cases
 - **GPU simulation** — Test with any GPU: `whichllm --gpu "RTX 4090"`
+- **Multi-GPU simulation** — Repeat `--gpu`, use commas, or write `2x RTX 4090`
+- **Full-GPU filter** — `--gpu-only` / `--fit full-gpu` hides offload candidates
 - **Hardware planning** — Reverse lookup: `whichllm plan "llama 3 70b"`
 - **Upgrade planning** — Compare your current machine with candidate GPUs
 - **JSON output** — Pipe-friendly: `whichllm --json`
@@ -206,12 +218,23 @@ whichllm --gpu "RTX 4090"
 whichllm --gpu "RTX 5090"
 # Specify variant
 whichllm --gpu "RTX 5060 16"
+# Simulate multiple GPUs
+whichllm --gpu "2x RTX 4090"
+whichllm --gpu "RTX 4090" --gpu "RTX 3090"
+whichllm --gpu "RTX 4090, RTX 3090"
+
+# Only show models that fit entirely in GPU VRAM
+whichllm --gpu-only
+whichllm --fit full-gpu --status
 
 # CPU-only mode
 whichllm --cpu-only
 
 # More results / filters
 whichllm --top 20
+whichllm --status
+whichllm --profile coding
+whichllm --context-length 64k
 whichllm --quant Q4_K_M
 whichllm --min-speed 30
 whichllm --evidence base   # allow id/base-model matches
@@ -245,9 +268,11 @@ whichllm snippet "qwen 7b"
 whichllm snippet "llama 3 8b gguf" --quant Q5_K_M
 ```
 
-JSON model rows include `estimated_tok_per_sec`, `speed_confidence`,
-`speed_range_tok_per_sec`, and `speed_notes`. The speed range is a planning
-range, not a live benchmark.
+JSON model rows include `fit_type`, `vram_required_bytes`,
+`vram_available_bytes`, `uses_multi_gpu`, `multi_gpu_effective_vram_bytes`,
+`estimated_tok_per_sec`, `speed_confidence`, `speed_range_tok_per_sec`,
+`speed_notes`, `benchmark_source`, and `benchmark_confidence`. The speed range
+is a planning range, not a live benchmark.
 
 ## Integrations
 
@@ -334,13 +359,14 @@ Speed markers in `--status`:
    Inheritance is rejected when a model's params diverge more than 2× from
    its family's dominant member, catching draft / MTP / abliterated forks
    that share a `family_id` with a much larger base.
-4. **Cache** — `~/.cache/whichllm/`:
+4. **Cache** — normally `~/.cache/whichllm/`, or `$XDG_CACHE_HOME/whichllm/`
+   when `XDG_CACHE_HOME` is set to an absolute path:
    - `models.json` — 6h TTL
    - `benchmark.json` — 24h TTL
 
 ### Ranking engine
 
-1. **Hardware detection** — NVIDIA (nvidia-ml-py), AMD (dbgpu/ROCm), Apple Silicon (Metal), CPU cores, RAM, disk
+1. **Hardware detection** — NVIDIA (nvidia-ml-py), AMD (ROCm/dbgpu), Intel, Apple Silicon (Metal), CPU cores, RAM, disk
 2. **VRAM estimation** — Weights + KV cache + activation + framework overhead (~500MB)
 3. **Compatibility** — Full GPU / Partial Offload / CPU-only; compute capability and OS checks
 4. **Speed** — tok/s from GPU memory bandwidth, quantization, backend, fit type, and MoE active parameters
@@ -352,7 +378,8 @@ Speed markers in `--status`:
 ```
 src/whichllm/
 ├── cli.py              # Typer CLI: main, plan, run, snippet, hardware
-├── constants.py        # GPU bandwidth, quantization bytes, compute capability
+├── constants.py        # Backward-compatible exports for registry data
+├── data/               # GPU, quantization, framework, and lineage registries
 ├── hardware/
 │   ├── detector.py     # Orchestrates GPU/CPU/RAM detection
 │   ├── nvidia.py       # NVIDIA GPU via nvidia-ml-py
@@ -376,7 +403,11 @@ src/whichllm/
 │   ├── ranker.py       # Scoring, evidence filter, profile/match
 │   └── types.py        # CompatibilityResult
 └── output/
-    └── display.py      # Rich table, JSON output, hardware/plan displays
+    ├── ranking.py      # Rich hardware and recommendation tables
+    ├── json_output.py  # Ranking, plan, and upgrade JSON
+    ├── plan.py         # plan command display
+    ├── upgrade.py      # upgrade comparison display
+    └── display.py      # Compatibility re-export shim
 ```
 
 ## Development

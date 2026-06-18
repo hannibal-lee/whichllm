@@ -60,6 +60,14 @@ whichllm
 whichllm --gpu "RTX 4090"
 whichllm --gpu "Apple M3 Max"
 
+# 複数GPUをシミュレートする
+whichllm --gpu "2x RTX 4090"
+whichllm --gpu "RTX 4090" --gpu "RTX 3090"
+
+# GPUのVRAMに全部載る候補だけを見る
+whichllm --gpu-only
+whichllm --fit full-gpu --status
+
 # CPUのみとして評価する
 whichllm --cpu-only
 
@@ -67,8 +75,11 @@ whichllm --cpu-only
 whichllm --json
 ```
 
-JSONの各モデルには `estimated_tok_per_sec` に加えて、
-`speed_confidence`、`speed_range_tok_per_sec`、`speed_notes` が入ります。
+JSONの各モデルには `estimated_tok_per_sec` に加えて、`fit_type`、
+`vram_required_bytes`、`vram_available_bytes`、`uses_multi_gpu`、
+`multi_gpu_effective_vram_bytes`、`speed_confidence`、
+`speed_range_tok_per_sec`、`speed_notes`、`benchmark_source`、
+`benchmark_confidence` が入ります。
 速度は実測値ではなく、ハードウェア情報とモデル情報からの推定です。
 
 ## 主なコマンド
@@ -79,7 +90,9 @@ whichllm --top 20
 whichllm --quant Q4_K_M
 whichllm --min-speed 30
 whichllm --profile coding
+whichllm --context-length 64k
 whichllm --status
+whichllm --gpu-only
 
 # ベンチ根拠の厳しさ
 whichllm --evidence strict
@@ -144,7 +157,12 @@ whichllm hardware
 5. 候補ごとに VRAM、互換性、速度、速度推定の信頼度、スコアを計算します。
 6. ファミリーごとに最も良い候補を残して表示します。
 
-キャッシュは `~/.cache/whichllm/` に保存されます。
+通常は full GPU、partial offload、CPU-only の候補をまとめて見ます。GPUの
+VRAMに全部載るモデルだけを見たい場合は `--gpu-only` か
+`--fit full-gpu` を使います。
+
+キャッシュは通常 `~/.cache/whichllm/` に保存されます。`XDG_CACHE_HOME` が
+絶対パスで設定されている場合は、その配下の `whichllm/` を使います。
 
 - `models.json`: 6時間
 - `benchmark.json`: 24時間
@@ -154,7 +172,8 @@ whichllm hardware
 ```text
 src/whichllm/
 ├── cli.py              # Typer CLI: main, plan, upgrade, run, snippet, hardware
-├── constants.py        # GPU帯域、量子化、世代補正、compute capability
+├── constants.py        # 互換用のregistry再export
+├── data/               # GPU、量子化、framework、lineageのregistry
 ├── hardware/           # ハードウェア検出とGPUシミュレーション
 ├── models/             # HuggingFace取得、ベンチ、キャッシュ、グルーピング
 ├── engine/             # VRAM、互換性、速度、ランキング

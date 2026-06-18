@@ -3,8 +3,9 @@
 whichllm detects the current machine and can also simulate hardware for
 purchase planning.
 
-The source of truth is the `hardware/` package plus GPU constants in
-`constants.py`.
+The source of truth is the `hardware/` package plus curated registry data in
+`data/gpu.py`. `constants.py` remains as a compatibility export layer for older
+imports.
 
 ## Detected data
 
@@ -34,13 +35,21 @@ NVIDIA detection tries `nvidia-ml-py` first. If NVML is unavailable, fails to
 initialize, or returns no devices, whichllm falls back to:
 
 ```bash
-nvidia-smi --query-gpu=name,memory.total --format=csv,noheader,nounits
+nvidia-smi --query-gpu=name,memory.total,clocks.max.memory --format=csv,noheader,nounits
 ```
 
-For known cards, `constants.py` provides:
+If a driver rejects `clocks.max.memory`, whichllm retries the older
+`name,memory.total` query.
+
+For known cards, curated data and strict `dbgpu` lookups provide:
 
 - memory bandwidth
 - compute capability
+
+The max memory clock is used when a marketing name covers multiple memory
+types. For example, GTX 1650 GDDR5 and GDDR6 cards share the same broad driver
+name, so whichllm uses the reported memory clock when available and falls back
+to the conservative bandwidth when it is not.
 
 DGX Spark / NVIDIA GB10 uses unified system memory. When the driver reports
 `memory.total` as unavailable, whichllm treats GB10 as shared memory and uses
@@ -104,7 +113,8 @@ CPU detection reads:
 
 - `/proc/cpuinfo` on Linux
 - `sysctl` on macOS
-- `wmic` on Windows
+- `wmic` on Windows, then PowerShell / CIM when `wmic` is unavailable or only
+  returns a header
 
 Physical core count comes from `psutil`, with a Linux `/proc/cpuinfo` fallback.
 

@@ -41,10 +41,15 @@ If detection is unavailable or you are planning a purchase, use `--gpu`:
 whichllm --gpu "RTX 4090"
 whichllm hardware --gpu "Apple M3 Max"
 whichllm --gpu "RTX 5060 Ti" --vram 16
+whichllm --gpu "2x RTX 4090"
+whichllm --gpu "RTX 4090" --gpu "RTX 3090"
 ```
 
 Use `--vram` when the GPU name has multiple memory variants or is not in the
 database.
+
+`--vram` only applies to a single simulated GPU. For multi-GPU simulation, use
+known GPU names and omit `--vram`.
 
 ## `--cpu-only` conflicts with `--gpu`
 
@@ -85,6 +90,7 @@ whichllm --refresh
 Common causes:
 
 - the selected `--quant` is too restrictive
+- `--gpu-only` or `--fit full-gpu` filters out partial-offload and CPU-only candidates
 - `--min-speed` is too high
 - `--evidence strict` filters out all candidates
 - the requested context length is too large
@@ -96,6 +102,23 @@ For very small machines, remove optional filters first:
 ```bash
 whichllm --top 20
 ```
+
+## Recommendations use RAM or CPU offload, but I only want VRAM
+
+By default, whichllm includes any runnable candidate: full-GPU, partial-offload,
+and CPU-only. This is useful for finding what can run at all, but it can be too
+loose when you want only models that fit entirely in GPU VRAM.
+
+Use:
+
+```bash
+whichllm --gpu-only
+whichllm --fit full-gpu --status
+```
+
+If no rows are shown, this machine has no ranked candidates that fit fully in
+GPU memory under the current filters. Remove `--gpu-only`, lower the context
+length, or try a smaller quantization.
 
 ## Results look stale
 
@@ -112,6 +135,12 @@ The caches live under:
 
 ```text
 ~/.cache/whichllm/
+```
+
+If `XDG_CACHE_HOME` is set to an absolute path, the caches live under:
+
+```text
+$XDG_CACHE_HOME/whichllm/
 ```
 
 ## `uvx` fails with `realpath: command not found`
