@@ -17,7 +17,7 @@ from whichllm.models.artifacts import (
     find_gguf_variant,
     resolve_ranked_gguf_artifact,
 )
-from whichllm.models.types import GGUFVariant, ModelInfo
+from whichllm.models.types import ModelInfo
 from whichllm.utils import _current_version, CONTEXT_LENGTH
 
 app = typer.Typer(
