@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [0.5.15] - 2026-07-03
+
+### Changed
+
+- Split the oversized Hugging Face model fetcher into focused modules while
+  keeping the existing `whichllm.models.fetcher` import surface. (#41, #140)
+
+### Fixed
+
+- Output now resolves ranked GGUF recommendations to the actual downloadable
+  artifact repo and filename when the ranked base model and runnable GGUF live
+  in different Hugging Face repos. (#137, #138)
+- AA index scoring now uses retuned normalization bounds and a refreshed
+  fallback snapshot for the reworked Artificial Analysis scale. (#101, #139)
+- Invalid ranking filters such as `--top 0`, negative `--min-speed`, and
+  negative `--min-params` now fail with clear errors instead of silently
+  producing wrong output. (#142)
+
 ## [0.5.14] - 2026-06-29
 
 ### Added
