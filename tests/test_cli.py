@@ -1,5 +1,7 @@
 """Tests for CLI helper logic."""
 
+import ast
+
 import httpx
 import pytest
 from typer import Exit
@@ -1173,6 +1175,53 @@ def test_transformers_chat_script_provides_disk_offload_folder():
     assert 'tempfile.mkdtemp(prefix="whichllm_transformers_offload_")' in script
     assert "offload_folder=offload_folder" in script
     assert "shutil.rmtree(offload_folder, ignore_errors=True)" in script
+
+
+def test_gguf_chat_script_treats_hf_metadata_as_literals():
+    model = _make_model(model_id="org/Test-7B")
+    filename = 'weights-Q4_K_M.gguf"); print("injected"); #.gguf'
+    variant = GGUFVariant(
+        filename=filename,
+        quant_type="Q4_K_M",
+        file_size_bytes=1,
+    )
+
+    tree = ast.parse(
+        _generate_chat_script(model, variant, context_length=4096, cpu_only=False)
+    )
+    assignments = {
+        node.targets[0].id: ast.literal_eval(node.value)
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id in {"model_id", "filename", "quant_type"}
+    }
+
+    assert assignments == {
+        "model_id": model.id,
+        "filename": filename,
+        "quant_type": variant.quant_type,
+    }
+
+
+def test_snippet_treats_hf_metadata_as_literals(monkeypatch):
+    filename = 'weights-Q4_K_M.gguf"); print("injected"); #.gguf'
+    model = _make_model(model_id="org/Test-7B")
+    model.gguf_variants = [
+        GGUFVariant(
+            filename=filename,
+            quant_type="Q4_K_M",
+            file_size_bytes=1,
+        )
+    ]
+    monkeypatch.setattr(cli_mod, "_load_models", lambda refresh: [model])
+
+    result = CliRunner().invoke(app, ["snippet", "Test-7B"])
+
+    assert result.exit_code == 0
+    assert f"repo_id={model.id!r}" in result.stdout
+    assert f"filename={filename!r}" in result.stdout
 
 
 def test_run_auto_pick_resolves_ranked_gguf_before_launch(monkeypatch):
